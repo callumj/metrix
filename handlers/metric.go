@@ -5,7 +5,6 @@ import (
 	"github.com/callumj/metrix/shared"
 	"github.com/jinzhu/now"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -60,13 +59,16 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 	totalMinutes := fmt.Sprintf("%v", int(diff.Minutes()))
 
 	var perMinuteKey string
-	var daySubKey string
+	var kvIncrementKey string
+	var kvIncrementSubKey string
 	if len(subkey) != 0 {
 		perMinuteKey = fmt.Sprintf("%v:%v:%v", day, key, subkey)
-		daySubKey = fmt.Sprintf("%v:%v", key, subkey)
+		kvIncrementKey = fmt.Sprintf("%v:%v", day, key)
+		kvIncrementSubKey = subkey
 	} else {
 		perMinuteKey = fmt.Sprintf("%v:%v", day, key)
-		daySubKey = key
+		kvIncrementKey = day
+		kvIncrementSubKey = key
 	}
 
 	redis := shared.RedisPool.Get()
@@ -76,7 +78,7 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 		shared.HandleError(err)
 	}
 
-	err = redis.Send("HINCRBY", day, daySubKey, "1")
+	err = redis.Send("HINCRBY", kvIncrementKey, kvIncrementSubKey, "1")
 	if err != nil {
 		shared.HandleError(err)
 	}
