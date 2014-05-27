@@ -21,7 +21,6 @@ func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 		recordIncrMetric(key, subkey, source, tPoint)
 
 		headers := req.Header
-		log.Printf("%v", headers)
 		sourceIp := headers.Get("X-Real-Ip")
 		if len(sourceIp) == 0 {
 			sourceIp = headers.Get("X-Forwarded-For")
