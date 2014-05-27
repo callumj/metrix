@@ -12,7 +12,9 @@ func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 	key := req.FormValue("key")
 
 	if len(key) != 0 {
-		recordIncrMetric(key, req.FormValue("subkey"))
+		subkey := req.FormValue("subkey")
+		recordIncrMetric(key, subkey)
+		storeIntoMetric(key, subkey, req.RemoteAddr)
 	}
 
 	body := "OK"
@@ -22,14 +24,7 @@ func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 }
 
 func recordIncrMetric(key, subkey string) {
-	tPoint := time.Now().UTC().Format("02012006")
-	if len(subkey) == 0 {
-		subkey = key
-		key = tPoint
-	} else {
-		key = fmt.Sprintf("%v_%v", tPoint, key)
-	}
-
+	key, subkey = computeKeys(key, subkey)
 	if len(key) != 0 {
 		redis := shared.RedisPool.Get()
 		_, err := redis.Do("HINCRBY", key, subkey, "1")
@@ -38,4 +33,32 @@ func recordIncrMetric(key, subkey string) {
 			shared.HandleError(err)
 		}
 	}
+}
+
+func storeIntoMetric(key, subkey, value string) {
+	key, subkey = computeKeys(key, subkey)
+	if len(key) != 0 {
+		join := fmt.Sprintf("%v:%v", key, subkey)
+		redis := shared.RedisPool.Get()
+		_, err := redis.Do("SADD", join, value)
+		redis.Close()
+		if err != nil {
+			shared.HandleError(err)
+		}
+	}
+}
+
+func computeKeys(key, subkey string) (string, string) {
+	if len(key) == 0 {
+		return "", ""
+	}
+	tPoint := time.Now().UTC().Format("02012006")
+	if len(subkey) == 0 {
+		subkey = key
+		key = tPoint
+	} else {
+		key = fmt.Sprintf("%v_%v", tPoint, key)
+	}
+
+	return key, subkey
 }
