@@ -18,12 +18,22 @@ func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 		subkey := req.FormValue("subkey")
 		source := req.FormValue("source")
 		recordIncrMetric(key, subkey, source, tPoint)
-		lastColon := strings.LastIndex(req.RemoteAddr, ":")
+
+		headers := req.Header
+		sourceIp := headers.Get("X-Real-Ip")
+		if len(sourceIp) == 0 {
+			sourceIp = headers.Get("X-Forwarded-For")
+		}
+		if len(sourceIp) == 0 {
+			sourceIp = req.RemoteAddr
+		}
+
+		lastColon := strings.LastIndex(sourceIp, ":")
 		var ipOnly string
 		if lastColon != -1 {
-			ipOnly = req.RemoteAddr[0:lastColon]
+			ipOnly = sourceIp[0:lastColon]
 		} else {
-			ipOnly = req.RemoteAddr
+			ipOnly = sourceIp
 		}
 		storeIntoMetric(key, subkey, source, tPoint, ipOnly)
 	}
