@@ -71,9 +71,16 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 	start := now.New(tPoint).BeginningOfDay()
 	diff := tPoint.Sub(start)
 
+	redis := shared.RedisPool.Get()
+	defer redis.Close()
+
 	day := tPoint.Format("02012006")
 	if len(source) != 0 {
 		day = fmt.Sprintf("%v:%v", source, day)
+		err := redis.Send("SADD", "sources", source)
+		if err != nil {
+			shared.HandleError(err)
+		}
 	}
 	totalMinutes := fmt.Sprintf("%v", int(diff.Minutes()))
 
@@ -90,8 +97,6 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 		kvIncrementSubKey = key
 	}
 
-	redis := shared.RedisPool.Get()
-	defer redis.Close()
 	err := redis.Send("HINCRBY", perMinuteKey, totalMinutes, "1")
 	if err != nil {
 		shared.HandleError(err)
