@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/callumj/metrix/metric_core"
 	"github.com/callumj/metrix/shared"
 	"github.com/jinzhu/now"
 	"io"
@@ -77,7 +78,7 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 	day := tPoint.Format("02012006")
 	if len(source) != 0 {
 		day = fmt.Sprintf("%v:%v", source, day)
-		err := redis.Send("SADD", "sources", source)
+		err := redis.Send("SADD", metric_core.SourcesKey, source)
 		if err != nil {
 			shared.HandleError(err)
 		}

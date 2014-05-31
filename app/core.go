@@ -25,5 +25,9 @@ func Run(args []string) {
 	http.Handle("/ping", http.HandlerFunc(handlers.PingHandler))
 	http.Handle("/test", http.HandlerFunc(handlers.TestHandler))
 	http.Handle("/metric/increment", http.HandlerFunc(handlers.IncrementMetricHandler))
+
+	http.Handle("/api/sources", http.HandlerFunc(handlers.SourceListHandler))
+	http.Handle("/api/dates", http.HandlerFunc(handlers.DateKeysHandler))
+
 	http.ListenAndServe(listenOn, nil)
 }

@@ -9,9 +9,11 @@ import (
 var Config Configuration
 
 type Configuration struct {
-	Sentry string
-	Redis  RedisConfig
-	Listen string
+	Sentry       string
+	Redis        RedisConfig
+	Listen       string
+	ApiKey       string
+	ApiKeyActive bool
 }
 
 type RedisConfig struct {
@@ -32,6 +34,12 @@ func LoadConfig(path string) bool {
 		return false
 	}
 
+	if len(Config.ApiKey) == 0 {
+		Config.ApiKeyActive = false
+	} else {
+		Config.ApiKeyActive = true
+	}
+
 	return true
 }
 
@@ -39,4 +47,9 @@ func ExplainConfig() {
 	log.Printf("Sentry DSN: %s", Config.Sentry)
 	log.Printf("Redis host: %s", Config.Redis.Server)
 	log.Printf("Redis password: %s", Config.Redis.Password)
+	if Config.ApiKeyActive {
+		log.Println("API Key set")
+	} else {
+		log.Println("API Key not set")
+	}
 }
