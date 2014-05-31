@@ -23,6 +23,7 @@ func Run(args []string) {
 	log.Printf("Starting web server on %v", listenOn)
 
 	http.Handle("/ping", http.HandlerFunc(handlers.PingHandler))
+	http.Handle("/test", http.HandlerFunc(handlers.TestHandler))
 	http.Handle("/metric/increment", http.HandlerFunc(handlers.IncrementMetricHandler))
 	http.ListenAndServe(listenOn, nil)
 }

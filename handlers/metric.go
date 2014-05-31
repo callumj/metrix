@@ -1,17 +1,41 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/callumj/metrix/shared"
 	"github.com/jinzhu/now"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
 
+var (
+	transGif = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/x8AAwAB/2+Bq7YAAAAASUVORK5CYII="
+)
+
 func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 	key := req.FormValue("key")
+
+	if (strings.Contains(req.Header.Get("Accept"), "image/") || req.FormValue("image") == "yes") && len(req.FormValue("redirect")) == 0 {
+		decoded, err := base64.StdEncoding.DecodeString(transGif)
+		if err == nil {
+			c.Header().Add("Content-Type", "image/gif")
+			c.Header().Add("Content-Length", strconv.Itoa(len(decoded)))
+			io.WriteString(c, string(decoded))
+		}
+	} else {
+		if len(req.FormValue("redirect")) != 0 {
+			http.Redirect(c, req, req.FormValue("redirect"), 307)
+		} else {
+			body := "OK"
+			c.Header().Add("Content-Type", "text/html")
+			c.Header().Add("Content-Length", "2")
+			io.WriteString(c, body)
+		}
+	}
 
 	if len(key) != 0 {
 		tPoint := time.Now().UTC()
@@ -37,11 +61,6 @@ func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 		}
 		storeIntoMetric(key, subkey, source, tPoint, ipOnly)
 	}
-
-	body := "OK"
-	c.Header().Add("Content-Type", "text/html")
-	c.Header().Add("Content-Length", "2")
-	io.WriteString(c, body)
 }
 
 func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
