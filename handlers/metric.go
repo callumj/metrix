@@ -41,6 +41,9 @@ func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 	if len(key) != 0 {
 		tPoint := time.Now().UTC()
 		subkey := req.FormValue("subkey")
+		if len(subkey) == 0 {
+			subkey = "default"
+		}
 		source := req.FormValue("source")
 		recordIncrMetric(key, subkey, source, tPoint)
 
@@ -79,6 +82,11 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 	if len(source) != 0 {
 		day = fmt.Sprintf("%v:%v", source, day)
 		err := redis.Send("SADD", metric_core.SourcesKey, source)
+		if err != nil {
+			shared.HandleError(err)
+		}
+
+		err = redis.Send("SADD", metric_core.KeySourcesKey(source), key)
 		if err != nil {
 			shared.HandleError(err)
 		}

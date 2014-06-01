@@ -17,7 +17,8 @@ type SourceListResponse struct {
 }
 
 type DateKeysResponse struct {
-	Count int `json:"count"`
+	Count int      `json:"count"`
+	Dates []string `json:"dates"`
 }
 
 func SourceListHandler(c http.ResponseWriter, req *http.Request) {
@@ -45,8 +46,9 @@ func SourceListHandler(c http.ResponseWriter, req *http.Request) {
 
 func DateKeysHandler(c http.ResponseWriter, req *http.Request) {
 	source := req.FormValue("source")
-	if len(source) == 0 {
-		http.Error(c, "`source` param must be provided", http.StatusBadRequest)
+	key := req.FormValue("key")
+	if len(source) == 0 || len(key) == 0 {
+		http.Error(c, "`source` & `key` param must be provided", http.StatusBadRequest)
 		return
 	}
 
@@ -95,8 +97,38 @@ func DateKeysHandler(c http.ResponseWriter, req *http.Request) {
 		lastTime = lastTime.Add(24 * time.Hour)
 	}
 
+	redisConn := shared.RedisPool.Get()
+	defer redisConn.Close()
+
+	redisConn.Send("MULTI")
+	for _, date := range allTimes {
+		thisKey := metric_core.BuildKVIncrementKey(date, source, key)
+		redisConn.Send("EXISTS", thisKey)
+	}
+	res, err := redisConn.Do("EXEC")
+
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	keyStates, err := redis.Values(res, err)
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	activeKeys := []string{}
+
+	for index, state := range keyStates {
+		status := state.(int64)
+		if status == 1 {
+			matching := allTimes[index]
+			activeKeys = append(activeKeys, metric_core.FormatDate(matching))
+		}
+	}
+
 	resp := DateKeysResponse{
-		Count: len(allTimes),
+		Count: len(activeKeys),
+		Dates: activeKeys,
 	}
 	writeJSON(c, resp)
 }
