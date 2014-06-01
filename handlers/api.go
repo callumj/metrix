@@ -5,15 +5,17 @@ import (
 	"github.com/callumj/metrix/metric_core"
 	"github.com/callumj/metrix/shared"
 	"github.com/garyburd/redigo/redis"
-	"github.com/jinzhu/now"
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type SourceListResponse struct {
 	Sources []string `json:"sources"`
+}
+
+type AvailableKeysResponse struct {
+	Keys []string `json:"keys"`
 }
 
 type DateKeysResponse struct {
@@ -22,6 +24,9 @@ type DateKeysResponse struct {
 }
 
 func SourceListHandler(c http.ResponseWriter, req *http.Request) {
+	if !verifyAPIKey(c, req) {
+		return
+	}
 
 	redisConn := shared.RedisPool.Get()
 	defer redisConn.Close()
@@ -44,7 +49,41 @@ func SourceListHandler(c http.ResponseWriter, req *http.Request) {
 	writeJSON(c, resp)
 }
 
+func AvailableKeysHandler(c http.ResponseWriter, req *http.Request) {
+	if !verifyAPIKey(c, req) {
+		return
+	}
+
+	source := req.FormValue("source")
+	if len(source) == 0 {
+		http.Error(c, "`source` & `key` param must be provided", http.StatusBadRequest)
+		return
+	}
+
+	redisConn := shared.RedisPool.Get()
+	defer redisConn.Close()
+
+	resp, err := redisConn.Do("SMEMBERS", metric_core.KeySourcesKey(source))
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	list, err := redis.Strings(resp, err)
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	json := AvailableKeysResponse{
+		Keys: list,
+	}
+	writeJSON(c, json)
+}
+
 func DateKeysHandler(c http.ResponseWriter, req *http.Request) {
+	if !verifyAPIKey(c, req) {
+		return
+	}
+
 	source := req.FormValue("source")
 	key := req.FormValue("key")
 	if len(source) == 0 || len(key) == 0 {
@@ -56,46 +95,10 @@ func DateKeysHandler(c http.ResponseWriter, req *http.Request) {
 		source = ""
 	}
 
-	timeStartNeedsInit := true
-	timeEndNeedsInit := true
-
-	var timeStart time.Time
-	var timeEnd time.Time
-
 	timeStartParam := req.FormValue("start")
 	timeEndParam := req.FormValue("end")
 
-	if len(timeStartParam) != 0 {
-		parsedInt, err := strconv.ParseInt(timeStartParam, 0, 64)
-		if err == nil {
-			timeStart = time.Unix(parsedInt, 0)
-			timeStartNeedsInit = false
-		}
-	}
-
-	if len(timeEndParam) != 0 {
-		parsedInt, err := strconv.ParseInt(timeEndParam, 0, 64)
-		if err == nil {
-			timeEnd = time.Unix(parsedInt, 0)
-			timeEndNeedsInit = false
-		}
-	}
-
-	if timeStartNeedsInit {
-		timeStart = now.New(time.Now().UTC()).BeginningOfDay()
-	}
-
-	if timeEndNeedsInit {
-		timeEnd = timeStart.Add((24 * time.Hour) * -7)
-	}
-
-	allTimes := []time.Time{timeEnd}
-	lastTime := timeEnd.Add(24 * time.Hour)
-
-	for lastTime.Unix() <= timeStart.Unix() {
-		allTimes = append(allTimes, lastTime)
-		lastTime = lastTime.Add(24 * time.Hour)
-	}
+	allTimes := shared.TimeBetweenDates(timeStartParam, timeEndParam)
 
 	redisConn := shared.RedisPool.Get()
 	defer redisConn.Close()

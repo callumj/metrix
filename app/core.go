@@ -27,6 +27,7 @@ func Run(args []string) {
 	http.Handle("/metric/increment", http.HandlerFunc(handlers.IncrementMetricHandler))
 
 	http.Handle("/api/sources", http.HandlerFunc(handlers.SourceListHandler))
+	http.Handle("/api/keys", http.HandlerFunc(handlers.AvailableKeysHandler))
 	http.Handle("/api/dates", http.HandlerFunc(handlers.DateKeysHandler))
 
 	http.ListenAndServe(listenOn, nil)
