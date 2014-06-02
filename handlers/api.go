@@ -184,6 +184,7 @@ func SubKeysHandler(c http.ResponseWriter, req *http.Request) {
 			} else {
 				states[lastKey] = parsedInt
 			}
+			expectingKey = true
 		}
 	}
 
