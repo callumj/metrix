@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/callumj/metrix/metric_core"
 	"github.com/callumj/metrix/shared"
 	"github.com/garyburd/redigo/redis"
@@ -22,6 +21,10 @@ type AvailableKeysResponse struct {
 type DateKeysResponse struct {
 	Count int      `json:"count"`
 	Dates []string `json:"dates"`
+}
+
+type SubKeysResponse struct {
+	SubKeys map[string]int64 `json:"sub_keys"`
 }
 
 func SourceListHandler(c http.ResponseWriter, req *http.Request) {
@@ -156,17 +159,39 @@ func SubKeysHandler(c http.ResponseWriter, req *http.Request) {
 	redisConn := shared.RedisPool.Get()
 	defer redisConn.Close()
 
-	resp, err := redisConn.Do("HGETALL", redisKey)
+	res, err := redisConn.Do("HGETALL", redisKey)
 	if err != nil {
 		shared.HandleError(err)
 	}
 
-	flatten, err := redis.Strings(resp, err)
+	flatten, err := redis.Strings(res, err)
 	if err != nil {
 		shared.HandleError(err)
 	}
 
-	fmt.Printf("%v\r\n", flatten)
+	states := make(map[string]int64)
+
+	expectingKey := true
+	var lastKey string
+	for _, result := range flatten {
+		if expectingKey {
+			expectingKey = false
+			lastKey = result
+		} else {
+			parsedInt, err := strconv.ParseInt(result, 0, 64)
+			if err != nil {
+				shared.HandleError(err)
+			} else {
+				states[lastKey] = parsedInt
+			}
+		}
+	}
+
+	resp := SubKeysResponse{
+		SubKeys: states,
+	}
+
+	writeJSON(c, resp)
 }
 
 func writeJSON(c http.ResponseWriter, resp interface{}) {
