@@ -29,6 +29,7 @@ func Run(args []string) {
 	http.Handle("/api/sources", http.HandlerFunc(handlers.SourceListHandler))
 	http.Handle("/api/keys", http.HandlerFunc(handlers.AvailableKeysHandler))
 	http.Handle("/api/dates", http.HandlerFunc(handlers.DateKeysHandler))
+	http.Handle("/api/counts", http.HandlerFunc(handlers.SubKeysHandler))
 
 	http.ListenAndServe(listenOn, nil)
 }

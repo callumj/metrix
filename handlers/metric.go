@@ -79,34 +79,31 @@ func recordIncrMetric(key, subkey, source string, tPoint time.Time) {
 	defer redis.Close()
 
 	day := tPoint.Format("02012006")
-	if len(source) != 0 {
-		day = fmt.Sprintf("%v:%v", source, day)
-		err := redis.Send("SADD", metric_core.SourcesKey, source)
-		if err != nil {
-			shared.HandleError(err)
-		}
 
-		err = redis.Send("SADD", metric_core.KeySourcesKey(source), key)
-		if err != nil {
-			shared.HandleError(err)
-		}
+	source = metric_core.RewriteSource(source)
+
+	day = fmt.Sprintf("%v:%v", source, day)
+	err := redis.Send("SADD", metric_core.SourcesKey, source)
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	err = redis.Send("SADD", metric_core.KeySourcesKey(source), key)
+	if err != nil {
+		shared.HandleError(err)
 	}
 	totalMinutes := fmt.Sprintf("%v", int(diff.Minutes()))
 
-	var perMinuteKey string
-	var kvIncrementKey string
+	perMinuteKey := metric_core.BuildByMinuteKey(tPoint, source, key, subkey)
+	kvIncrementKey := metric_core.BuildKVIncrementKey(tPoint, source, key)
 	var kvIncrementSubKey string
 	if len(subkey) != 0 {
-		perMinuteKey = fmt.Sprintf("%v:%v:%v", day, key, subkey)
-		kvIncrementKey = fmt.Sprintf("%v:%v", day, key)
 		kvIncrementSubKey = subkey
 	} else {
-		perMinuteKey = fmt.Sprintf("%v:%v", day, key)
-		kvIncrementKey = day
-		kvIncrementSubKey = key
+		kvIncrementSubKey = "default"
 	}
 
-	err := redis.Send("HINCRBY", perMinuteKey, totalMinutes, "1")
+	err = redis.Send("HINCRBY", perMinuteKey, totalMinutes, "1")
 	if err != nil {
 		shared.HandleError(err)
 	}

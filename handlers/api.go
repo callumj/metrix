@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/callumj/metrix/metric_core"
 	"github.com/callumj/metrix/shared"
 	"github.com/garyburd/redigo/redis"
@@ -56,9 +57,11 @@ func AvailableKeysHandler(c http.ResponseWriter, req *http.Request) {
 
 	source := req.FormValue("source")
 	if len(source) == 0 {
-		http.Error(c, "`source` & `key` param must be provided", http.StatusBadRequest)
+		http.Error(c, "`source` param must be provided", http.StatusBadRequest)
 		return
 	}
+
+	source = metric_core.RewriteSource(source)
 
 	redisConn := shared.RedisPool.Get()
 	defer redisConn.Close()
@@ -91,9 +94,7 @@ func DateKeysHandler(c http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if source == "default" {
-		source = ""
-	}
+	source = metric_core.RewriteSource(source)
 
 	timeStartParam := req.FormValue("start")
 	timeEndParam := req.FormValue("end")
@@ -134,6 +135,38 @@ func DateKeysHandler(c http.ResponseWriter, req *http.Request) {
 		Dates: activeKeys,
 	}
 	writeJSON(c, resp)
+}
+
+func SubKeysHandler(c http.ResponseWriter, req *http.Request) {
+	if !verifyAPIKey(c, req) {
+		return
+	}
+
+	source := req.FormValue("source")
+	key := req.FormValue("key")
+	date := req.FormValue("date")
+	if len(source) == 0 || len(key) == 0 || len(date) == 0 {
+		http.Error(c, "`source`, `key` & `date` param must be provided", http.StatusBadRequest)
+		return
+	}
+
+	source = metric_core.RewriteSource(source)
+	redisKey := metric_core.BuildKVIncrementKeyString(date, source, key)
+
+	redisConn := shared.RedisPool.Get()
+	defer redisConn.Close()
+
+	resp, err := redisConn.Do("HGETALL", redisKey)
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	flatten, err := redis.Strings(resp, err)
+	if err != nil {
+		shared.HandleError(err)
+	}
+
+	fmt.Printf("%v\r\n", flatten)
 }
 
 func writeJSON(c http.ResponseWriter, resp interface{}) {

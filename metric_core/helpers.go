@@ -31,13 +31,39 @@ func FormatDate(date time.Time) string {
 
 func BuildKVIncrementKey(date time.Time, source, key string) string {
 	day := FormatDate(date)
-	if source == "default" {
-		source = ""
-	}
+
+	return BuildKVIncrementKeyString(day, source, key)
+}
+
+func BuildKVIncrementKeyString(day, source, key string) string {
+	source = RewriteSource(source)
 
 	if len(source) != 0 {
 		day = fmt.Sprintf("%v:%v", source, day)
 	}
 
 	return fmt.Sprintf("%s:%s", day, key)
+}
+
+func BuildByMinuteKey(date time.Time, source, key, subkey string) string {
+	source = RewriteSource(source)
+	var day string
+	if len(source) == 0 {
+		day = FormatDate(date)
+	} else {
+		day = fmt.Sprintf("%v:%v", source, FormatDate(date))
+	}
+
+	if len(subkey) == 0 {
+		subkey = "default"
+	}
+
+	return fmt.Sprintf("%v:%v:%v", day, key, subkey)
+}
+
+func RewriteSource(source string) string {
+	if source == "default" {
+		source = ""
+	}
+	return source
 }
