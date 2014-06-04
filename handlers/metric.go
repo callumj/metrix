@@ -20,6 +20,10 @@ var (
 func IncrementMetricHandler(c http.ResponseWriter, req *http.Request) {
 	key := req.FormValue("key")
 
+	if len(key) == 0 {
+		key = "default"
+	}
+
 	if (strings.Contains(req.Header.Get("Accept"), "image/") || req.FormValue("image") == "yes") && len(req.FormValue("redirect")) == 0 {
 		decoded, err := base64.StdEncoding.DecodeString(transGif)
 		if err == nil {
