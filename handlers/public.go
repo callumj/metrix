@@ -13,7 +13,9 @@ func PublicHandler(c http.ResponseWriter, req *http.Request) {
 
 	res, err := resource_bundle.FetchFile(vars["path"])
 
-	if err != nil {
+	if err == resource_bundle.ErrNotExist {
+		http.Error(c, err.Error(), http.StatusNotFound)
+	} else if err == resource_bundle.ErrLoading || err == resource_bundle.ErrReading {
 		http.Error(c, err.Error(), http.StatusInternalServerError)
 	} else {
 		c.Header().Add("Content-Type", res.ContentType)
