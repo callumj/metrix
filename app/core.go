@@ -2,7 +2,9 @@ package app
 
 import (
 	"github.com/callumj/metrix/handlers"
+	"github.com/callumj/metrix/resource_bundle"
 	"github.com/callumj/metrix/shared"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 )
@@ -22,14 +24,22 @@ func Run(args []string) {
 
 	log.Printf("Starting web server on %v", listenOn)
 
-	http.Handle("/ping", http.HandlerFunc(handlers.PingHandler))
-	http.Handle("/test", http.HandlerFunc(handlers.TestHandler))
-	http.Handle("/metric/increment", http.HandlerFunc(handlers.IncrementMetricHandler))
+	resource_bundle.FetchFilesFromSelf()
 
-	http.Handle("/api/sources", http.HandlerFunc(handlers.SourceListHandler))
-	http.Handle("/api/keys", http.HandlerFunc(handlers.AvailableKeysHandler))
-	http.Handle("/api/dates", http.HandlerFunc(handlers.DateKeysHandler))
-	http.Handle("/api/counts", http.HandlerFunc(handlers.SubKeysHandler))
+	r := mux.NewRouter()
+
+	r.HandleFunc("/ping", handlers.PingHandler)
+	r.HandleFunc("/test", handlers.TestHandler)
+	r.HandleFunc("/metric/increment", handlers.IncrementMetricHandler)
+
+	r.HandleFunc("/api/sources", handlers.SourceListHandler)
+	r.HandleFunc("/api/keys", handlers.AvailableKeysHandler)
+	r.HandleFunc("/api/dates", handlers.DateKeysHandler)
+	r.HandleFunc("/api/counts", handlers.SubKeysHandler)
+
+	r.HandleFunc("/public/{path:.+}", handlers.PublicHandler)
+
+	http.Handle("/", r)
 
 	http.ListenAndServe(listenOn, nil)
 }
