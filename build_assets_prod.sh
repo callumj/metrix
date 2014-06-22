@@ -1,7 +1,5 @@
 #!/bin/bash
 pattern='Size: ([0-9]+)'
-cur=`pwd`
-
 
 mkdir -p tmp
 zip tmp/assets.zip assets/*
@@ -37,7 +35,7 @@ if ! [ -n "$VET" ]
 then
   echo "All good"
   # install self if needed
-  go install -u github.com/callumj/metrix
+  go get -u github.com/callumj/metrix
   goxc -os "linux darwin" -pv ${VERSION} -d builds xc copy-resources
 else
   echo "$VET"
