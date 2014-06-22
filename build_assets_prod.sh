@@ -1,10 +1,18 @@
 #!/bin/bash
 pattern='Size: ([0-9]+)'
+cur=`pwd`
+
 
 mkdir -p tmp
 zip tmp/assets.zip assets/*
 
-stat_res=`stat -x tmp/assets.zip`
+stat_res=""
+arch=`uname`
+if [[ $arch == "Darwin" ]]; then
+  stat_res=`stat -x tmp/assets.zip`
+else
+  stat_res=`stat tmp/assets.zip`
+fi
 
 fileLength=false
 if [[ "$stat_res" =~ $pattern ]]; then
@@ -28,6 +36,8 @@ rm -r -f builds/
 if ! [ -n "$VET" ]
 then
   echo "All good"
+  # install self if needed
+  go install -u github.com/callumj/metrix
   goxc -os "linux darwin" -pv ${VERSION} -d builds xc copy-resources
 else
   echo "$VET"
