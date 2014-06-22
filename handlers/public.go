@@ -6,12 +6,25 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
-func PublicHandler(c http.ResponseWriter, req *http.Request) {
+func PublicDevHandler(c http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 
-	res, err := resource_bundle.FetchFile(vars["path"])
+	processFile(vars["path"], c, req)
+}
+
+func PublicProdHandler(c http.ResponseWriter, req *http.Request) {
+	path := strings.TrimPrefix(req.RequestURI, "/")
+	if len(path) == 0 {
+		path = "index.html"
+	}
+	processFile(path, c, req)
+}
+
+func processFile(key string, c http.ResponseWriter, req *http.Request) {
+	res, err := resource_bundle.FetchFile(key)
 
 	if err == resource_bundle.ErrNotExist {
 		http.Error(c, err.Error(), http.StatusNotFound)

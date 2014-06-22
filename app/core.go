@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/callumj/metrix/handlers"
 	"github.com/callumj/metrix/resource_bundle"
 	"github.com/callumj/metrix/shared"
@@ -37,9 +38,24 @@ func Run(args []string) {
 	r.HandleFunc("/api/dates", handlers.DateKeysHandler)
 	r.HandleFunc("/api/counts", handlers.SubKeysHandler)
 
-	r.HandleFunc("/public/{path:.+}", handlers.PublicHandler)
+	allocatePublicResources(r)
 
 	http.Handle("/", r)
 
 	http.ListenAndServe(listenOn, nil)
+}
+
+func allocatePublicResources(router *mux.Router) {
+	if len(resource_bundle.AssetKeys) != 0 {
+		for _, key := range resource_bundle.AssetKeys {
+			route := fmt.Sprintf("/%v", key)
+			log.Printf("Allocating route for %v\r\n", route)
+			router.HandleFunc(route, handlers.PublicProdHandler)
+			if route == "/index.html" {
+				router.HandleFunc("/", handlers.PublicProdHandler)
+			}
+		}
+	} else {
+		router.HandleFunc("/public/{path:.+}", handlers.PublicDevHandler)
+	}
 }
