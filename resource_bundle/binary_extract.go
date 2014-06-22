@@ -14,6 +14,8 @@ import (
 var productionMode bool = false
 var assetReplaceReg = regexp.MustCompile(`^assets/`)
 
+var AssetKeys []string
+
 func FetchFilesFromSelf() {
 	pathToSelf, err := exec.LookPath(os.Args[0])
 	if err != nil {
@@ -48,7 +50,6 @@ func FetchFilesFromSelf() {
 	for _, f := range zipR.File {
 		if f.UncompressedSize64 != 0 {
 			fName := assetReplaceReg.ReplaceAllString(f.Name, "")
-			log.Printf("Preparing to load asset %s\r\n", fName)
 			fPntr, err := f.Open()
 			if err != nil {
 				log.Printf("Failed to open %s: %v\r\n", fName, err)
@@ -70,6 +71,7 @@ func addResource(fName string, data []byte) {
 
 	cType := getMimeType(fName)
 	CachedResources[fName] = newCachedFile(cType, data)
+	AssetKeys = append(AssetKeys, fName)
 	log.Printf("Loaded asset %v (%v)\r\n", fName, cType)
 }
 
