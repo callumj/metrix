@@ -2,6 +2,8 @@ package resource_bundle
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +15,7 @@ import (
 type CachedFile struct {
 	Data        []byte
 	ContentType string
+	Hash        string
 }
 
 var (
@@ -31,6 +34,10 @@ func FetchFile(key string) (CachedFile, error) {
 		return val, nil
 	}
 
+	return fallbackFetchFileFromDisk(key)
+}
+
+func fallbackFetchFileFromDisk(key string) (CachedFile, error) {
 	if productionMode {
 		return CachedFile{}, ErrNotExist
 	}
@@ -54,10 +61,7 @@ func FetchFile(key string) (CachedFile, error) {
 
 	cType := getMimeType(finalPath)
 
-	resource := CachedFile{
-		Data:        buf.Bytes(),
-		ContentType: cType,
-	}
+	resource := newCachedFile(cType, buf.Bytes())
 
 	return resource, nil
 }
@@ -86,4 +90,15 @@ func getAssetPath(path string) string {
 func getMimeType(file string) string {
 	fileExt := filepath.Ext(file)
 	return mime.TypeByExtension(fileExt)
+}
+
+func newCachedFile(cType string, data []byte) CachedFile {
+	h := md5.New()
+	h.Write(data)
+	hashResult := hex.EncodeToString(h.Sum(nil))
+	return CachedFile{
+		Data:        data,
+		ContentType: cType,
+		Hash:        hashResult,
+	}
 }

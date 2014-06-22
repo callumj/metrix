@@ -69,10 +69,7 @@ func addResource(fName string, data []byte) {
 	}
 
 	cType := getMimeType(fName)
-	CachedResources[fName] = CachedFile{
-		Data:        data,
-		ContentType: cType,
-	}
+	CachedResources[fName] = newCachedFile(cType, data)
 	log.Printf("Loaded asset %v (%v)\r\n", fName, cType)
 }
 

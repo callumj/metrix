@@ -20,6 +20,7 @@ func PublicHandler(c http.ResponseWriter, req *http.Request) {
 	} else {
 		c.Header().Add("Content-Type", res.ContentType)
 		c.Header().Add("Content-Length", strconv.Itoa(len(res.Data)))
+		c.Header().Add("eTag", res.Hash)
 		io.WriteString(c, string(res.Data))
 	}
 }
