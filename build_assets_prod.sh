@@ -41,6 +41,9 @@ for f in $FILES
 do
   cat tmp/assets.zip >> ${f}
   echo -n "ArchiveLength:${fileLength}" >> ${f}
+  str="/metrix"
+  repl=""
+  path=${f/$str/$repl}
+  tar  -C ${path} -cvzf "${f}.tgz" metrix
+  rm ${f}
 done
-
-goxc -os "linux darwin" -pv ${VERSION} -d archive-tar-gz rmbin
