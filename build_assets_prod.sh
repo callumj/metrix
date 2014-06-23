@@ -26,17 +26,35 @@ fi
 
 VERSION=`cat VERSION`
 
+rm -r -f tmp/go
+rm -r -f builds/
+
 # vet the source (capture errors because the current version does not use exit statuses currently)
+echo "Vetting..."
 VET=`go tool vet . 2>&1 >/dev/null`
 
-rm -r -f builds/
+cur=`pwd` 
 
 if ! [ -n "$VET" ]
 then
   echo "All good"
-  # install self if needed
-  go get -u github.com/callumj/metrix
-  goxc -os "linux darwin" -pv ${VERSION} -d builds xc copy-resources
+  mkdir tmp/go
+  mkdir tmp/go/src tmp/go/bin tmp/go/pkg
+  mkdir -p tmp/go/src/github.com/callumj/metrix
+  cp -R app assets handlers metric_core resource_bundle shared main.go tmp/go/src/github.com/callumj/metrix/
+  mkdir -p builds/${VERSION}/darwin_386 builds/${VERSION}/darwin_amd64 builds/${VERSION}/linux_386 builds/${VERSION}/linux_amd64 
+  GOPATH="${cur}/tmp/go"
+  echo "Getting"
+  GOPATH="${cur}/tmp/go" go get -d .
+  echo "Starting build"
+
+  GOPATH="${cur}/tmp/go" GOOS=darwin GOARCH=386 go build -o builds/${VERSION}/darwin_386/metrix
+
+  GOPATH="${cur}/tmp/go" GOARCH=amd64 GOOS=darwin go build -o builds/${VERSION}/darwin_amd64/metrix
+
+  GOPATH="${cur}/tmp/go" GOOS=linux GOARCH=amd64 go build -o builds/${VERSION}/linux_amd64/metrix
+
+  GOPATH="${cur}/tmp/go" GOOS=linux GOARCH=386 go build -o builds/${VERSION}/linux_386/metrix
 else
   echo "$VET"
   exit -1
