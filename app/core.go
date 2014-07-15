@@ -40,6 +40,8 @@ func Run(args []string) {
 	r.HandleFunc("/api/dates", handlers.DateKeysHandler)
 	r.HandleFunc("/api/counts", handlers.SubKeysHandler)
 
+	r.HandleFunc("/api/versions", handlers.VersionGetHandler)
+
 	allocatePublicResources(r)
 
 	http.Handle("/", r)
