@@ -33,6 +33,8 @@ func Run(args []string) {
 	r.HandleFunc("/test", handlers.TestHandler)
 	r.HandleFunc("/metric/increment", handlers.IncrementMetricHandler)
 
+	r.HandleFunc("/version", handlers.VersionSetHandler)
+
 	r.HandleFunc("/api/sources", handlers.SourceListHandler)
 	r.HandleFunc("/api/keys", handlers.AvailableKeysHandler)
 	r.HandleFunc("/api/dates", handlers.DateKeysHandler)
