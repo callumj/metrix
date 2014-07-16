@@ -27,7 +27,7 @@ fi
 VERSION=`cat VERSION`
 
 rm -r -f tmp/go
-rm -r -f builds/
+rm -r -f builds/${VERSION}
 
 # vet the source (capture errors because the current version does not use exit statuses currently)
 echo "Vetting..."
